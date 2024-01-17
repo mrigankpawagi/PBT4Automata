@@ -1,5 +1,5 @@
 from automaton import Automaton
-from hypothesis import given, strategies as st
+from hypothesis import given, strategies as st, settings
 import re
 
 
@@ -14,6 +14,7 @@ def test(automaton: Automaton, pattern: str):
     counter_example = None
     
     @given(st.text(alphabet=alphabet, max_size=num_states * 5))
+    @settings(max_examples=1000)
     def run(input_string):
         # Run the automaton on the input string
         result = automaton.run(input_string)
