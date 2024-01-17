@@ -46,3 +46,5 @@ if check == True:
 else:
     print("Counterexample: " + check)
 ```
+
+You can also pass a function of type `Callable[[str], bool]` to the `test` function instead of a regex.

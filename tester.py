@@ -1,15 +1,25 @@
 from automaton import Automaton
 from hypothesis import given, strategies as st, settings
 import re
+from typing import Callable
 
 
-def test(automaton: Automaton, pattern: str):
+def test(automaton: Automaton, pattern: str | Callable[[str], bool]):
     """
-    Uses hypothesis to test the automaton against the given pattern (regex)
+    Uses hypothesis to test the automaton against the 
+    given pattern (regex or function)
+    
+    The regex must be a string, and the function must be be of
+    type Callable[[str], bool]
     """
     alphabet = automaton.alphabet
     num_states = len(automaton.states)
     # We scale this by 5 but this can be changed
+    
+    if isinstance(pattern, str):
+        checker = lambda s: bool(re.fullmatch(pattern, s))
+    else:
+        checker = pattern
     
     counter_example = None
     
@@ -20,7 +30,7 @@ def test(automaton: Automaton, pattern: str):
         result = automaton.run(input_string)
         
         # Check if the result matches the result from the regex matching
-        assert result == bool(re.fullmatch(pattern, input_string)), input_string
+        assert result == checker(input_string), input_string
 
     try:
         run()
