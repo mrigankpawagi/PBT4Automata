@@ -1,5 +1,7 @@
 # Property Based Testing for Automata
 
+This repository provides tools to construct finite automata in Python and verify them against a given rule for correctness. This verification is done using `Hypothesis`, a python library for property-based testing, which also provides a counter-example (often the smallest possible) in case of a mismatch. Note that this is not formal verification and cannot guarantee correctness. Nonetheless, this is a convenient (and usually sufficiently thorough) way to evaluate automata.
+
 ### Dependencies
 
 1. Hypothesis
