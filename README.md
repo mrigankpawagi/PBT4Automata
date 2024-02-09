@@ -14,6 +14,8 @@ pip install hypothesis
 
 ### Deterministic Finite Automata
 
+#### Testing a DFA against a rule
+
 The following example tests a DFA that accepts all strings that contain the substring "010" or "100".
 
 ```python
@@ -50,3 +52,25 @@ else:
 ```
 
 You can also pass a function of type `Callable[[str], bool]` to the `test` function instead of a regex.
+
+#### Testing two DFAs for equivalence
+
+```python
+from automaton import DFA
+from tester import test_equivalence
+
+automata1 = DFA(
+    ...
+)
+
+automata2 = DFA(
+    ...
+)
+
+check = test_equivalence(automata1, automata2)
+
+if check == True:
+    print("Success!")
+else:
+    print("Counterexample: " + repr(check))
+```
