@@ -1,6 +1,6 @@
 # Property Based Testing for Automata
 
-This repository provides tools to construct finite automata in Python and test them against a given rule for correctness. This testing is done using [Hypothesis](https://hypothesis.readthedocs.io/en/latest/index.html), a python library for property-based testing, which also provides a counter-example (often the smallest possible) in case of a mismatch. Note that this is not formal verification and cannot guarantee correctness. Nonetheless, this is a convenient (and usually sufficiently thorough) way to evaluate automata.
+This repository provides tools to construct finite automata and context-free grammars in Python and test them against a given rule for correctness. This testing is done using [Hypothesis](https://hypothesis.readthedocs.io/en/latest/index.html), a python library for property-based testing, which also provides a counter-example (often the smallest possible) in case of a mismatch. Note that this is not formal verification and cannot guarantee correctness. Nonetheless, this is a convenient (and usually sufficiently thorough) way to evaluate finite automata and context-free grammars.
 
 ### Dependencies
 
@@ -73,4 +73,46 @@ if check == True:
     print("Success!")
 else:
     print("Counterexample: " + repr(check))
+```
+
+### Context-Free Grammars
+
+#### Testing a CFG against a rule
+
+The following example tests a CFG in Chomsky Normal Form that generates all non-empty strings of balanced parentheses.
+
+```python
+from grammar import CNF
+
+cnf = CNF(
+    terminals="()",
+    nonterminals="SLRX",
+    productions={
+        "S": ["LX", "SS"],
+        "L": ["("],
+        "R": [")"],
+        "X": ["SR", ")"]
+    },
+    start_symbol="S"
+)
+
+def check_balance(input_string: str) -> bool:
+    if input_string == "":
+        return False
+    s = 0
+    for c in input_string:
+        if c == "(":
+            s += 1
+        elif c == ")":
+            s -= 1
+        if s < 0:
+            return False
+    return s == 0
+
+check = cnf.test(check_balance)
+
+if check == True:
+    print("Success!")
+else:
+    print("Counterexample: " + check)
 ```

@@ -79,7 +79,7 @@ class DFA(Automaton):
     A Deterministic Finite Automaton (DFA)
     """
     
-    def __init__(self, states: list, alphabet: list, transition_function: dict, start_state, accept_states: list):
+    def __init__(self, states: list, alphabet: list[str] | str, transition_function: dict, start_state, accept_states: list):
         """
         Initialize the DFA with the given parameters
         
