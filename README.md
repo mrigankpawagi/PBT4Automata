@@ -1,4 +1,8 @@
-# Property Based Testing for Automata
+# Property Based Testing for Finite Automata and Context-free Grammars
+
+<p align=center>
+    <img src="https://github.com/user-attachments/assets/c57f4822-eb3f-4e9e-9af3-7d22b927fbfe" />
+</p>
 
 This repository provides tools to construct finite automata and context-free grammars in Python and test them against a given rule for correctness. This testing is done using [Hypothesis](https://hypothesis.readthedocs.io/en/latest/index.html), a python library for property-based testing, which also provides a counter-example (often the smallest possible) in case of a mismatch. Note that this is not formal verification and cannot guarantee correctness. Nonetheless, this is a convenient (and usually sufficiently thorough) way to evaluate finite automata and context-free grammars.
 
