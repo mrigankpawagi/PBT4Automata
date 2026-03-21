@@ -1,35 +1,45 @@
-# Property Based Testing for Finite Automata and Context-free Grammars
+# Property-Based Testing for Finite Automata and Context-Free Grammars
 
 <p align=center>
     <img src="https://github.com/user-attachments/assets/c57f4822-eb3f-4e9e-9af3-7d22b927fbfe" />
 </p>
 
-This repository provides tools to construct finite automata and context-free grammars in Python and test them against a given rule for correctness. This testing is done using [Hypothesis](https://hypothesis.readthedocs.io/en/latest/index.html), a python library for property-based testing, which also provides a counter-example (often the smallest possible) in case of a mismatch. Note that this is not formal verification and cannot guarantee correctness. Nonetheless, this is a convenient (and usually sufficiently thorough) way to evaluate finite automata and context-free grammars.
+**pbt4automata** provides tools to construct finite automata and context-free
+grammars in Python and test them for correctness against a given specification.
+Testing is powered by [Hypothesis](https://hypothesis.readthedocs.io/), which
+generates inputs automatically and shrinks any counterexample to its smallest
+possible form.  Note that this is *not* formal verification and cannot
+guarantee correctness, but it is a convenient and usually thorough way to
+validate formal-language constructs.
 
-### Dependencies
-
-1. Hypothesis
+## Installation
 
 ```bash
-pip install hypothesis
+pip install pbt4automata
+```
+
+To also install the development dependencies (pytest):
+
+```bash
+pip install "pbt4automata[dev]"
 ```
 
 ## Examples
 
 ### Deterministic Finite Automata
 
-#### Testing a DFA against a rule
+#### Testing a DFA against a specification
 
-The following example tests a DFA that accepts all strings that contain the substring "010" or "100".
+The following example tests a DFA that accepts all strings containing the
+substring `"010"` or `"100"`.
 
 ```python
-from automaton import DFA
-from tester import test
+from pbt4automata import DFA
 
-automata = DFA(
-    states = ["q0", "q1", "q2", "q3", "q4", "q5"],
-    alphabet = "01",
-    transition_function = {
+dfa = DFA(
+    states=["q0", "q1", "q2", "q3", "q4", "q5"],
+    alphabet="01",
+    transition_function={
         ("q0", "0"): "q1",
         ("q0", "1"): "q4",
         ("q1", "0"): "q1",
@@ -41,52 +51,51 @@ automata = DFA(
         ("q4", "0"): "q5",
         ("q4", "1"): "q4",
         ("q5", "0"): "q3",
-        ("q5", "1"): "q2"
+        ("q5", "1"): "q2",
     },
-    start_state = "q0",
-    accept_states = ["q3"]
+    start_state="q0",
+    accept_states=["q3"],
 )
 
-check = test(automata, "[01]*(010|100)[01]*")
+result = dfa.test("[01]*(010|100)[01]*")
 
-if check == True:
+if result is True:
     print("Success!")
 else:
-    print("Counterexample: " + check)
+    print("Counterexample:", result)
 ```
 
-You can also pass a function of type `Callable[[str], bool]` to the `test` function instead of a regex.
+You can also pass a callable `(str) -> bool` instead of a regex string:
+
+```python
+result = dfa.test(lambda s: "010" in s or "100" in s)
+```
 
 #### Testing two DFAs for equivalence
 
 ```python
-from automaton import DFA
-from tester import test_equivalence
+from pbt4automata import DFA, Automaton
 
-automata1 = DFA(
-    ...
-)
+dfa1 = DFA(...)
+dfa2 = DFA(...)
 
-automata2 = DFA(
-    ...
-)
+result = Automaton.test_equivalence(dfa1, dfa2)
 
-check = test_equivalence(automata1, automata2)
-
-if check == True:
-    print("Success!")
+if result is True:
+    print("The DFAs are equivalent.")
 else:
-    print("Counterexample: " + repr(check))
+    print("Counterexample:", repr(result))
 ```
 
 ### Context-Free Grammars
 
-#### Testing a CFG against a rule
+#### Testing a CNF grammar against a specification
 
-The following example tests a CFG in Chomsky Normal Form that generates all non-empty strings of balanced parentheses.
+The following example tests a grammar in Chomsky Normal Form (CNF) that
+generates all non-empty balanced-parentheses strings.
 
 ```python
-from grammar import CNF
+from pbt4automata import CNF
 
 cnf = CNF(
     terminals="()",
@@ -95,28 +104,60 @@ cnf = CNF(
         "S": ["LX", "SS"],
         "L": ["("],
         "R": [")"],
-        "X": ["SR", ")"]
+        "X": ["SR", ")"],
     },
-    start_symbol="S"
+    start_symbol="S",
 )
 
-def check_balance(input_string: str) -> bool:
-    if input_string == "":
+def check_balance(s: str) -> bool:
+    if not s:
         return False
-    s = 0
-    for c in input_string:
+    depth = 0
+    for c in s:
         if c == "(":
-            s += 1
+            depth += 1
         elif c == ")":
-            s -= 1
-        if s < 0:
+            depth -= 1
+        if depth < 0:
             return False
-    return s == 0
+    return depth == 0
 
-check = cnf.test(check_balance)
+result = cnf.test(check_balance)
 
-if check == True:
+if result is True:
     print("Success!")
 else:
-    print("Counterexample: " + check)
+    print("Counterexample:", result)
 ```
+
+## Exception Hierarchy
+
+All exceptions raised by this library inherit from `PBT4AutomataError`:
+
+```
+PBT4AutomataError
+├── AutomatonError
+│   ├── InvalidStartStateError
+│   ├── InvalidAcceptStatesError
+│   ├── InvalidTransitionFunctionError
+│   └── InvalidSymbolError
+└── GrammarError
+    ├── InvalidStartSymbolError
+    └── InvalidProductionError
+```
+
+Import any exception directly from the package:
+
+```python
+from pbt4automata import InvalidStartStateError
+```
+
+## Development
+
+```bash
+git clone https://github.com/mrigankpawagi/PBT4Automata.git
+cd PBT4Automata
+pip install -e ".[dev]"
+pytest
+```
+

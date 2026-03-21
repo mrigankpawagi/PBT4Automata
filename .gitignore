@@ -1,3 +1,6 @@
 _*.py
 **/__pycache__
 **/.hypothesis
+*.egg-info/
+dist/
+build/

@@ -1,8 +1,14 @@
-"""Tests for automaton.py (DFA and Automaton classes)."""
+"""Tests for the DFA and Automaton classes."""
 
 import re
 import pytest
-from automaton import DFA, Automaton
+from pbt4automata import DFA, Automaton
+from pbt4automata.exceptions import (
+    InvalidAcceptStatesError,
+    InvalidStartStateError,
+    InvalidSymbolError,
+    InvalidTransitionFunctionError,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -55,7 +61,7 @@ def _make_accepts_all() -> DFA:
 
 class TestDFAConstruction:
     def test_none_start_state_raises(self):
-        with pytest.raises(Exception, match="Start state cannot be None"):
+        with pytest.raises(InvalidStartStateError, match="Start state cannot be None"):
             DFA(
                 states=["q0"],
                 alphabet="a",
@@ -65,7 +71,7 @@ class TestDFAConstruction:
             )
 
     def test_start_state_not_in_states_raises(self):
-        with pytest.raises(Exception, match="Start state is not in the list of states"):
+        with pytest.raises(InvalidStartStateError, match="Start state is not in the list of states"):
             DFA(
                 states=["q0"],
                 alphabet="a",
@@ -75,7 +81,7 @@ class TestDFAConstruction:
             )
 
     def test_accept_state_not_in_states_raises(self):
-        with pytest.raises(Exception, match="Accept states are not in the list of states"):
+        with pytest.raises(InvalidAcceptStatesError, match="Accept states are not in the list of states"):
             DFA(
                 states=["q0"],
                 alphabet="a",
@@ -86,7 +92,7 @@ class TestDFAConstruction:
 
     def test_incomplete_transition_function_raises(self):
         # Missing transitions for q1
-        with pytest.raises(Exception, match="Transition function is not valid"):
+        with pytest.raises(InvalidTransitionFunctionError, match="Transition function is not valid"):
             DFA(
                 states=["q0", "q1"],
                 alphabet="ab",
@@ -96,7 +102,7 @@ class TestDFAConstruction:
             )
 
     def test_transition_to_unknown_state_raises(self):
-        with pytest.raises(Exception, match="Transition function is not valid"):
+        with pytest.raises(InvalidTransitionFunctionError, match="Transition function is not valid"):
             DFA(
                 states=["q0"],
                 alphabet="a",
@@ -160,7 +166,7 @@ class TestDFARun:
         assert self.dfa.run("bab") is False
 
     def test_symbol_not_in_alphabet_raises(self):
-        with pytest.raises(Exception, match="Symbol is not in the alphabet"):
+        with pytest.raises(InvalidSymbolError, match="Symbol is not in the alphabet"):
             self.dfa.run("c")
 
 
