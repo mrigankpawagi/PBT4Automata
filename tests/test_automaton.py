@@ -1,18 +1,4 @@
-"""
-Tests for automaton.py (DFA and Automaton classes).
-
-Correctness rationale
----------------------
-Every deterministic claim (state transitions, accepted/rejected strings) is
-derived by manually tracing through the DFA definition provided in the test
-itself, so the expected values can be verified by inspection without running
-code.  Property-based tests (DFA.test / Automaton.test_equivalence) are
-validated by:
-  1. Confirming that a *correct* implementation returns True.
-  2. Confirming that a *known-incorrect* implementation returns a counterexample
-     (not True), and that the counterexample exposes the exact bug: the DFA
-     disagrees with the specification on that string.
-"""
+"""Tests for automaton.py (DFA and Automaton classes)."""
 
 import re
 import pytest

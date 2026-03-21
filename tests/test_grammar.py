@@ -1,17 +1,4 @@
-"""
-Tests for grammar.py (CNF and CFG classes).
-
-Correctness rationale
----------------------
-Parse results for specific strings are derived by manually tracing the CYK
-algorithm on the grammar definition embedded in each test, so the expected
-values can be verified by inspection.  Property-based tests (CNF.test) are
-validated by:
-  1. Confirming that a *correct* grammar returns True against a known-correct
-     reference implementation of the same language.
-  2. Confirming that a *known-incorrect* grammar returns a counterexample (not
-     True), and that the counterexample exposes the exact bug.
-"""
+"""Tests for grammar.py (CNF and CFG classes)."""
 
 import pytest
 from grammar import CNF
