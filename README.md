@@ -77,6 +77,76 @@ else:
     print("Counterexample:", repr(result))
 ```
 
+### Nondeterministic Finite Automata
+
+#### Testing an NFA against a rule
+
+NFAs support nondeterministic transitions (multiple possible next states for a given state and symbol) as well as epsilon (ε) transitions. The transition function maps `(state, symbol)` pairs to **sets** of states; use `None` as the symbol for ε-transitions. Unlike DFAs, the transition function may be partial.
+
+The following example tests an NFA that accepts all strings over `{0, 1}` that end with the substring `"01"`.
+
+```python
+from pbt4automata import NFA
+
+nfa = NFA(
+    states=["q0", "q1", "q2"],
+    alphabet="01",
+    transition_function={
+        ("q0", "0"): {"q0", "q1"},  # nondeterministically guess start of "01"
+        ("q0", "1"): {"q0"},
+        ("q1", "1"): {"q2"},
+    },
+    start_state="q0",
+    accept_states=["q2"],
+)
+
+result = nfa.test("[01]*01")
+
+if result is True:
+    print("Success!")
+else:
+    print("Counterexample:", result)
+```
+
+You can also pass a function of type `Callable[[str], bool]` to `nfa.test(...)` instead of a regex.
+
+#### NFA with epsilon transitions
+
+```python
+from pbt4automata import NFA
+
+# Accepts "a" or "ab"
+nfa = NFA(
+    states=["q0", "q1", "q2", "q3"],
+    alphabet="ab",
+    transition_function={
+        ("q0", "a"): {"q1"},
+        ("q1", None): {"q2"},   # ε-transition: q1 is also effectively q2
+        ("q1", "b"): {"q3"},
+    },
+    start_state="q0",
+    accept_states=["q2", "q3"],
+)
+```
+
+#### Testing an NFA for equivalence with another automaton
+
+`Automaton.test_equivalence` works with any mix of `DFA` and `NFA` objects sharing the same alphabet.
+
+```python
+from pbt4automata import Automaton, DFA, NFA
+
+nfa = NFA(...)
+dfa = DFA(...)
+
+result = Automaton.test_equivalence(nfa, dfa)
+
+if result is True:
+    print("Success!")
+else:
+    print("Counterexample:", repr(result))
+```
+
 ### Context-Free Grammars
 
 #### Testing a CFG against a rule
