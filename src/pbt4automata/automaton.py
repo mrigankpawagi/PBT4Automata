@@ -17,6 +17,7 @@ from .exceptions import (
 State: TypeAlias = str
 Symbol: TypeAlias = str
 TransitionFunction: TypeAlias = dict[tuple[State, Symbol], State]
+NFA_TransitionFunction: TypeAlias = dict[tuple[State, Symbol | None], set[State]]
 Rule: TypeAlias = str | Callable[[str], bool]
 TestResult: TypeAlias = bool | str
 
@@ -127,3 +128,69 @@ class DFA(Automaton):
                 raise InvalidSymbolError("Symbol is not in the alphabet")
             current_state = self.transition_function[(current_state, symbol)]
         return current_state in self.accept_states
+
+
+class NFA(Automaton):
+    def __init__(
+        self,
+        states: Sequence[State],
+        alphabet: Sequence[Symbol] | str,
+        transition_function: NFA_TransitionFunction,
+        start_state: State | None,
+        accept_states: Sequence[State],
+    ) -> None:
+        normalized_states = tuple(states)
+        normalized_alphabet = tuple(alphabet)
+        normalized_accept_states = tuple(accept_states)
+
+        if start_state is None:
+            raise InvalidStartStateError("Start state cannot be None")
+        if start_state not in normalized_states:
+            raise InvalidStartStateError("Start state is not in the list of states")
+        if not all(state in normalized_states for state in normalized_accept_states):
+            raise InvalidAcceptStatesError("Accept states are not in the list of states")
+
+        for (state, symbol), next_states in transition_function.items():
+            if state not in normalized_states:
+                raise InvalidTransitionFunctionError("Transition function is not valid")
+            if symbol is not None and symbol not in normalized_alphabet:
+                raise InvalidTransitionFunctionError("Transition function is not valid")
+            if not all(s in normalized_states for s in next_states):
+                raise InvalidTransitionFunctionError("Transition function is not valid")
+
+        self._states = normalized_states
+        self._alphabet = normalized_alphabet
+        self.transition_function = transition_function
+        self.start_state = start_state
+        self.accept_states = normalized_accept_states
+
+    @property
+    def states(self) -> Sequence[State]:
+        return self._states
+
+    @property
+    def alphabet(self) -> Sequence[Symbol]:
+        return self._alphabet
+
+    def _epsilon_closure(self, states: frozenset[State]) -> frozenset[State]:
+        """Compute the epsilon closure of a set of states."""
+        closure: set[State] = set(states)
+        stack = list(states)
+        while stack:
+            state = stack.pop()
+            for next_state in self.transition_function.get((state, None), set()):
+                if next_state not in closure:
+                    closure.add(next_state)
+                    stack.append(next_state)
+        return frozenset(closure)
+
+    def run(self, input_string: str) -> bool:
+        current_states = self._epsilon_closure(frozenset([self.start_state]))
+        for symbol in input_string:
+            if symbol not in self.alphabet:
+                raise InvalidSymbolError("Symbol is not in the alphabet")
+            next_states: set[State] = set()
+            for state in current_states:
+                next_states.update(self.transition_function.get((state, symbol), set()))
+            current_states = self._epsilon_closure(frozenset(next_states))
+        return bool(current_states & set(self.accept_states))
