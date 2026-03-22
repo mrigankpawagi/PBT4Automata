@@ -1,5 +1,7 @@
 # pbt4automata
 
+[![Tests](https://github.com/mrigankpawagi/pbt4automata/actions/workflows/tests.yml/badge.svg)](https://github.com/mrigankpawagi/pbt4automata/actions/workflows/tests.yml) ![Python Version](https://img.shields.io/badge/python-3.10%2B-blue)
+
 <p align=center>
     <img src="https://github.com/user-attachments/assets/c57f4822-eb3f-4e9e-9af3-7d22b927fbfe" />
 </p>
