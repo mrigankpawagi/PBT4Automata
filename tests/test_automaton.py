@@ -1,9 +1,11 @@
-"""Tests for the DFA and Automaton classes."""
+"""Tests for automaton.py (DFA and Automaton classes)."""
 
 import re
 import pytest
-from pbt4automata import DFA, Automaton
-from pbt4automata.exceptions import (
+from pbt4automata import (
+    AlphabetMismatchError,
+    Automaton,
+    DFA,
     InvalidAcceptStatesError,
     InvalidStartStateError,
     InvalidSymbolError,
@@ -264,6 +266,24 @@ class TestDFAEquivalence:
             accept_states=["s1", "s3"],
         )
         assert Automaton.test_equivalence(dfa1, dfa2) is True
+
+    def test_mismatched_alphabet_raises(self):
+        dfa1 = DFA(
+            states=["q0"],
+            alphabet="ab",
+            transition_function={("q0", "a"): "q0", ("q0", "b"): "q0"},
+            start_state="q0",
+            accept_states=["q0"],
+        )
+        dfa2 = DFA(
+            states=["q0"],
+            alphabet="01",
+            transition_function={("q0", "0"): "q0", ("q0", "1"): "q0"},
+            start_state="q0",
+            accept_states=["q0"],
+        )
+        with pytest.raises(AlphabetMismatchError, match="Alphabets are not the same"):
+            Automaton.test_equivalence(dfa1, dfa2)
 
     def test_non_equivalent_dfas_return_counterexample(self):
         """

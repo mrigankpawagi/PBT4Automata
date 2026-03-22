@@ -1,27 +1,8 @@
-"""Custom exceptions for pbt4automata."""
-
-from __future__ import annotations
-
-__all__ = [
-    "PBT4AutomataError",
-    "AutomatonError",
-    "InvalidStartStateError",
-    "InvalidAcceptStatesError",
-    "InvalidTransitionFunctionError",
-    "InvalidSymbolError",
-    "GrammarError",
-    "InvalidStartSymbolError",
-    "InvalidProductionError",
-]
+"""Custom exception hierarchy for pbt4automata."""
 
 
 class PBT4AutomataError(Exception):
-    """Base exception for all pbt4automata errors."""
-
-
-# ---------------------------------------------------------------------------
-# Automaton exceptions
-# ---------------------------------------------------------------------------
+    """Base exception for all library errors."""
 
 
 class AutomatonError(PBT4AutomataError):
@@ -29,24 +10,23 @@ class AutomatonError(PBT4AutomataError):
 
 
 class InvalidStartStateError(AutomatonError):
-    """Raised when the start state is ``None`` or not present in the state set."""
+    """Raised when a DFA start state is missing or invalid."""
 
 
 class InvalidAcceptStatesError(AutomatonError):
-    """Raised when one or more accept states are not present in the state set."""
+    """Raised when one or more DFA accept states are invalid."""
 
 
 class InvalidTransitionFunctionError(AutomatonError):
-    """Raised when the transition function is incomplete or references unknown states."""
+    """Raised when a DFA transition function is incomplete or invalid."""
 
 
 class InvalidSymbolError(AutomatonError):
-    """Raised when a symbol outside the alphabet is encountered during execution."""
+    """Raised when an input symbol is not in the alphabet."""
 
 
-# ---------------------------------------------------------------------------
-# Grammar exceptions
-# ---------------------------------------------------------------------------
+class AlphabetMismatchError(AutomatonError):
+    """Raised when equivalence testing is requested for different alphabets."""
 
 
 class GrammarError(PBT4AutomataError):
@@ -54,8 +34,16 @@ class GrammarError(PBT4AutomataError):
 
 
 class InvalidStartSymbolError(GrammarError):
-    """Raised when the start symbol is ``None`` or not present in the nonterminal set."""
+    """Raised when a grammar start symbol is missing or invalid."""
+
+
+class InvalidNonterminalError(GrammarError):
+    """Raised when productions reference undeclared nonterminals."""
+
+
+class InvalidGrammarSymbolError(GrammarError):
+    """Raised when productions reference undeclared terminals/nonterminals."""
 
 
 class InvalidProductionError(GrammarError):
-    """Raised when a production rule violates the grammar's normal-form constraints."""
+    """Raised when grammar productions violate expected constraints."""

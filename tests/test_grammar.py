@@ -1,9 +1,10 @@
-"""Tests for the CNF and CFG classes."""
+"""Tests for grammar.py (CNF and CFG classes)."""
 
 import pytest
-from pbt4automata import CNF
-from pbt4automata.exceptions import (
-    GrammarError,
+from pbt4automata import (
+    CNF,
+    InvalidGrammarSymbolError,
+    InvalidNonterminalError,
     InvalidProductionError,
     InvalidStartSymbolError,
 )
@@ -76,7 +77,7 @@ class TestCNFConstruction:
             )
 
     def test_unknown_nonterminal_in_productions_raises(self):
-        with pytest.raises(GrammarError, match="Nonterminal is not in the list of nonterminals"):
+        with pytest.raises(InvalidNonterminalError, match="Nonterminal is not in the list of nonterminals"):
             CNF(
                 terminals="a",
                 nonterminals="S",
@@ -85,7 +86,7 @@ class TestCNFConstruction:
             )
 
     def test_unknown_symbol_in_production_raises(self):
-        with pytest.raises(GrammarError, match="Symbol is not in the list of terminals or nonterminals"):
+        with pytest.raises(InvalidGrammarSymbolError, match="Symbol is not in the list of terminals or nonterminals"):
             CNF(
                 terminals="a",
                 nonterminals="ST",
