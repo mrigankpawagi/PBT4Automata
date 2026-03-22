@@ -119,6 +119,36 @@ else:
     print("Counterexample:", result)
 ```
 
+#### Converting a general CFG to CNF
+
+`Grammar` accepts any context-free grammar (productions of any length, including ε-productions). Call `to_cnf()` to obtain an equivalent `CNF` object, or use `Grammar.parse()` directly — it converts to CNF internally.
+
+```python
+from pbt4automata import Grammar
+
+# Grammar for "a^n b^n" (n ≥ 1): S → aSb | ab
+g = Grammar(
+    terminals="ab",
+    nonterminals="SAB",
+    productions={
+        "S": ["aSb", "ab"],
+        "A": ["a"],
+        "B": ["b"],
+    },
+    start_symbol="S",
+)
+
+cnf = g.to_cnf()   # returns a CNF instance with equivalent language
+
+# Parse directly via Grammar (delegates to CNF internally)
+print(g.parse("ab"))       # True
+print(g.parse("aabb"))     # True
+print(g.parse("aaabbb"))   # True
+print(g.parse("aab"))      # False
+```
+
+You can then call `cnf.test(rule)` to property-test the converted grammar, or work with it like any other `CNF` object.
+
 ## Development
 
 Install dev dependencies and run tests:
