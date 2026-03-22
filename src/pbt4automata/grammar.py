@@ -145,7 +145,177 @@ class CNF(CFG):
         return self.start_symbol in table[n - 1][0]
 
 
-class Grammar(CFG):
+def _compute_cnf(
+    terminals: tuple[str, ...],
+    nonterminals: tuple[str, ...],
+    productions: Productions,
+    start_symbol: str,
+) -> tuple[tuple[str, ...], tuple[str, ...], Productions, str]:
+    """Convert an unrestricted CFG to Chomsky Normal Form.
+
+    Returns a 4-tuple of (terminals, nonterminals, productions, start_symbol)
+    suitable for passing directly to CNF.__init__.
+    """
+    terminal_set: set[str] = set(terminals)
+    nonterminal_set: set[str] = set(nonterminals)
+
+    # Internal representation: dict[str, set[tuple[str, ...]]]
+    # Each production is a tuple of single-character symbols.
+    prods: dict[str, set[tuple[str, ...]]] = {
+        nt: {tuple(alt) for alt in alts}
+        for nt, alts in productions.items()
+    }
+    # Ensure every declared nonterminal has an entry (even if no productions).
+    for nt in nonterminal_set:
+        prods.setdefault(nt, set())
+
+    start = start_symbol
+
+    # Helper: allocate a fresh single-character nonterminal symbol.
+    # Using an iterator keeps the total allocation cost O(|alphabet|)
+    # rather than O(n²) when many new symbols are needed.
+    _used: set[str] = terminal_set | nonterminal_set
+    _nt_candidates = iter(
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        "abcdefghijklmnopqrstuvwxyz"
+        "0123456789"
+    )
+
+    def new_nt() -> str:
+        for c in _nt_candidates:
+            if c not in _used:
+                _used.add(c)
+                nonterminal_set.add(c)
+                prods[c] = set()
+                return c
+        raise ValueError("No available single-character nonterminal symbols remain")
+
+    # ── Step 1: New start symbol ──────────────────────────────────────────
+    # Ensure the current start symbol does not appear on any right-hand side.
+    start_in_rhs = any(
+        start in sym
+        for alts in prods.values()
+        for prod in alts
+        for sym in prod
+    )
+    if start_in_rhs:
+        new_start = new_nt()
+        prods[new_start] = {(start,)}
+        start = new_start
+
+    # ── Step 2: Eliminate ε-productions ──────────────────────────────────
+    # Compute the set of nullable nonterminals (those that can derive ε).
+    nullable: set[str] = set()
+    for nt, alts in prods.items():
+        for prod in alts:
+            if not prod:
+                nullable.add(nt)
+
+    changed = True
+    while changed:
+        changed = False
+        for nt, alts in prods.items():
+            if nt not in nullable:
+                for prod in alts:
+                    if prod and all(sym in nullable for sym in prod):
+                        nullable.add(nt)
+                        changed = True
+
+    # Rebuild productions: drop ε-rules and add nullable-omission variants.
+    new_prods: dict[str, set[tuple[str, ...]]] = {nt: set() for nt in prods}
+    for nt, alts in prods.items():
+        for prod in alts:
+            if not prod:
+                continue  # drop ε-production
+            nullable_positions = [i for i, sym in enumerate(prod) if sym in nullable]
+            num_nullable = len(nullable_positions)
+            for mask in range(1 << num_nullable):
+                omit = {
+                    nullable_positions[j]
+                    for j in range(num_nullable)
+                    if mask & (1 << j)
+                }
+                new_prod = tuple(sym for i, sym in enumerate(prod) if i not in omit)
+                if new_prod:  # never re-introduce ε
+                    new_prods[nt].add(new_prod)
+    prods = new_prods
+
+    # ── Step 3: Eliminate unit productions ───────────────────────────────
+    def unit_closure(root: str) -> set[str]:
+        visited: set[str] = {root}
+        queue: list[str] = [root]
+        while queue:
+            current = queue.pop()
+            for prod in prods.get(current, set()):
+                if (
+                    len(prod) == 1
+                    and prod[0] in nonterminal_set
+                    and prod[0] not in visited
+                ):
+                    visited.add(prod[0])
+                    queue.append(prod[0])
+        return visited
+
+    for nt in list(prods.keys()):
+        closure = unit_closure(nt)
+        combined: set[tuple[str, ...]] = set()
+        for b in closure:
+            for prod in prods.get(b, set()):
+                if not (len(prod) == 1 and prod[0] in nonterminal_set):
+                    combined.add(prod)
+        prods[nt] = combined
+
+    # ── Step 4: Binarize long productions (length ≥ 3) ───────────────────
+    for nt in list(prods.keys()):
+        long_prods = {prod for prod in prods[nt] if len(prod) > 2}
+        for prod in long_prods:
+            prods[nt].discard(prod)
+            remaining = list(prod)
+            current_nt = nt
+            while len(remaining) > 2:
+                first = remaining[0]
+                remaining = remaining[1:]
+                next_nt = new_nt()
+                prods[current_nt].add((first, next_nt))
+                current_nt = next_nt
+            prods[current_nt].add(tuple(remaining))
+
+    # ── Step 5: Replace terminals in binary productions ───────────────────
+    # For A → BC where B or C is a terminal, introduce Tₐ → a.
+    terminal_nt: dict[str, str] = {}
+    for nt in list(prods.keys()):
+        new_alts: set[tuple[str, ...]] = set()
+        for prod in prods[nt]:
+            if len(prod) == 2:
+                new_prod = list(prod)
+                for i in range(2):
+                    if new_prod[i] in terminal_set:
+                        a = new_prod[i]
+                        if a not in terminal_nt:
+                            terminal_nt[a] = new_nt()
+                        new_prod[i] = terminal_nt[a]
+                new_alts.add(tuple(new_prod))
+            else:
+                new_alts.add(prod)
+        prods[nt] = new_alts
+
+    for terminal, wrapper_nt in terminal_nt.items():
+        prods[wrapper_nt] = {(terminal,)}
+
+    # ── Assemble the result ───────────────────────────────────────────────
+    active_nts = {nt for nt, alts in prods.items() if alts}
+    active_nts.add(start)
+
+    final_prods: Productions = {
+        nt: ["".join(prod) for prod in prods[nt]]
+        for nt in active_nts
+        if prods.get(nt)
+    }
+
+    return tuple(terminal_set), tuple(active_nts), final_prods, start
+
+
+class Grammar(CNF):
     def __init__(
         self,
         terminals: Sequence[Terminal] | str,
@@ -171,22 +341,10 @@ class Grammar(CFG):
                             "Symbol is not in the list of terminals or nonterminals: " + symbol
                         )
 
-        self._terminals = normalized_terminals
-        self.nonterminals = normalized_nonterminals
-        self._productions = productions
-        self.start_symbol = start_symbol
-
-    @property
-    def terminals(self) -> Sequence[Terminal]:
-        return self._terminals
-
-    @property
-    def productions(self) -> Productions:
-        return self._productions
+        cnf_terminals, cnf_nonterminals, cnf_productions, cnf_start = _compute_cnf(
+            normalized_terminals, normalized_nonterminals, productions, start_symbol
+        )
+        super().__init__(cnf_terminals, cnf_nonterminals, cnf_productions, cnf_start)
 
     def to_cnf(self) -> CNF:
-        raise NotImplementedError("Conversion to CNF is not implemented yet.")
-
-    def parse(self, input_string: str) -> bool:
-        cnf = self.to_cnf()
-        return cnf.parse(input_string)
+        return self

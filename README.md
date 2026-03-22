@@ -151,21 +151,18 @@ else:
 
 #### Testing a CFG against a rule
 
-The following example tests a CFG in Chomsky Normal Form that generates all non-empty strings of balanced parentheses.
+The following example tests a CFG that generates all non-empty strings of balanced parentheses.
 
 ```python
-from pbt4automata import CNF
+from pbt4automata import Grammar
 
-cnf = CNF(
+grammar = Grammar(
     terminals="()",
-    nonterminals="SLRX",
+    nonterminals="S",
     productions={
-        "S": ["LX", "SS"],
-        "L": ["("],
-        "R": [")"],
-        "X": ["SR", ")"]
+        "S": ["(S)", "SS", "()"],
     },
-    start_symbol="S"
+    start_symbol="S",
 )
 
 def check_balance(input_string: str) -> bool:
@@ -181,12 +178,35 @@ def check_balance(input_string: str) -> bool:
             return False
     return s == 0
 
-result = cnf.test(check_balance)
+result = grammar.test(check_balance)
 
 if result is True:
     print("Success!")
 else:
     print("Counterexample:", result)
+```
+
+You can also pass a function of type `Callable[[str], bool]` to `grammar.test(...)`.
+
+#### Parsing strings
+
+```python
+from pbt4automata import Grammar
+
+# Grammar for "a^n b^n" (n ≥ 1): S → aSb | ab
+grammar = Grammar(
+    terminals="ab",
+    nonterminals="S",
+    productions={
+        "S": ["aSb", "ab"],
+    },
+    start_symbol="S",
+)
+
+print(grammar.parse("ab"))       # True
+print(grammar.parse("aabb"))     # True
+print(grammar.parse("aaabbb"))   # True
+print(grammar.parse("aab"))      # False
 ```
 
 ## Development
