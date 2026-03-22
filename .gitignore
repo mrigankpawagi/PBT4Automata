@@ -1,3 +1,5 @@
-_*.py
 **/__pycache__
 **/.hypothesis
+build/
+dist/
+*.egg-info/
