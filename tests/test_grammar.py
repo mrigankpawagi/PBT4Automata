@@ -3,6 +3,7 @@
 import pytest
 from pbt4automata import (
     CNF,
+    Grammar,
     InvalidGrammarSymbolError,
     InvalidNonterminalError,
     InvalidProductionError,
@@ -266,3 +267,165 @@ class TestCNFTest:
         grammar_verdict = buggy_cnf.parse(result)
         reference_verdict = _check_balance(result)
         assert grammar_verdict != reference_verdict
+
+
+# ---------------------------------------------------------------------------
+# 5. Grammar.to_cnf() – conversion tests
+# ---------------------------------------------------------------------------
+
+def _make_simple_grammar() -> Grammar:
+    """
+    Simple grammar:  S → a | b
+    Already trivially in CNF (single-terminal productions).
+    """
+    return Grammar(
+        terminals="ab",
+        nonterminals="S",
+        productions={"S": ["a", "b"]},
+        start_symbol="S",
+    )
+
+
+def _make_unit_production_grammar() -> Grammar:
+    """
+    Grammar with a unit production chain: S → A, A → a
+    After CNF conversion the unit production S → A must be eliminated.
+    """
+    return Grammar(
+        terminals="a",
+        nonterminals="SA",
+        productions={"S": ["A"], "A": ["a"]},
+        start_symbol="S",
+    )
+
+
+def _make_long_production_grammar() -> Grammar:
+    """
+    Grammar with a length-3 production:  S → ABC, A → a, B → b, C → c
+    to_cnf() must binarize S → ABC into two binary rules.
+    """
+    return Grammar(
+        terminals="abc",
+        nonterminals="SABC",
+        productions={
+            "S": ["ABC"],
+            "A": ["a"],
+            "B": ["b"],
+            "C": ["c"],
+        },
+        start_symbol="S",
+    )
+
+
+def _make_epsilon_production_grammar() -> Grammar:
+    """
+    Grammar where A is nullable:
+        S → AB, A → a | "", B → b
+    The CNF must accept "ab" and "b" (when A derives ε), but not "a".
+    """
+    return Grammar(
+        terminals="ab",
+        nonterminals="SAB",
+        productions={
+            "S": ["AB"],
+            "A": ["a", ""],
+            "B": ["b"],
+        },
+        start_symbol="S",
+    )
+
+
+def _make_mixed_binary_grammar() -> Grammar:
+    """
+    Grammar with a mixed terminal/nonterminal binary production:
+        S → aB, B → b
+    The 'a' in 'aB' must be wrapped in a new nonterminal by to_cnf().
+    """
+    return Grammar(
+        terminals="ab",
+        nonterminals="SB",
+        productions={
+            "S": ["aB"],
+            "B": ["b"],
+        },
+        start_symbol="S",
+    )
+
+
+class TestGrammarToCNF:
+    def test_returns_cnf_instance(self):
+        """to_cnf() must return a CNF object."""
+        g = _make_simple_grammar()
+        result = g.to_cnf()
+        assert isinstance(result, CNF)
+
+    def test_simple_grammar_preserves_language(self):
+        """Grammar S → a | b accepts exactly 'a' and 'b'."""
+        g = _make_simple_grammar()
+        cnf = g.to_cnf()
+        assert cnf.parse("a") is True
+        assert cnf.parse("b") is True
+        assert cnf.parse("ab") is False
+        assert cnf.parse("c") is False
+
+    def test_unit_production_elimination(self):
+        """Grammar S → A, A → a: after CNF conversion S still accepts 'a'."""
+        g = _make_unit_production_grammar()
+        cnf = g.to_cnf()
+        assert cnf.parse("a") is True
+        assert cnf.parse("b") is False
+        assert cnf.parse("aa") is False
+
+    def test_long_production_binarization(self):
+        """Grammar S → ABC must be binarized; CNF parses 'abc'."""
+        g = _make_long_production_grammar()
+        cnf = g.to_cnf()
+        assert cnf.parse("abc") is True
+        assert cnf.parse("ab") is False
+        assert cnf.parse("abcd") is False
+        assert cnf.parse("bca") is False
+
+    def test_epsilon_production_elimination(self):
+        """Grammar S → AB, A → a | ε, B → b: CNF accepts 'ab' and 'b'."""
+        g = _make_epsilon_production_grammar()
+        cnf = g.to_cnf()
+        assert cnf.parse("ab") is True
+        assert cnf.parse("b") is True
+        assert cnf.parse("a") is False
+        assert cnf.parse("") is False
+
+    def test_mixed_binary_terminal_replacement(self):
+        """Grammar S → aB, B → b: CNF must accept 'ab'."""
+        g = _make_mixed_binary_grammar()
+        cnf = g.to_cnf()
+        assert cnf.parse("ab") is True
+        assert cnf.parse("a") is False
+        assert cnf.parse("b") is False
+        assert cnf.parse("ba") is False
+
+    def test_start_symbol_in_rhs(self):
+        """
+        When the start symbol appears on a RHS the conversion must introduce a
+        new start symbol so the language is preserved.
+
+        Grammar:  S → SS | a   (generates non-empty strings of 'a')
+        """
+        g = Grammar(
+            terminals="a",
+            nonterminals="S",
+            productions={"S": ["SS", "a"]},
+            start_symbol="S",
+        )
+        cnf = g.to_cnf()
+        # S appears on the RHS of S → SS; a new start must have been introduced
+        assert cnf.parse("a") is True
+        assert cnf.parse("aa") is True
+        assert cnf.parse("aaa") is True
+        assert cnf.parse("b") is False
+
+    def test_grammar_parse_delegates_to_cnf(self):
+        """Grammar.parse() must match the CNF parse for several strings."""
+        g = _make_long_production_grammar()
+        cnf = g.to_cnf()
+        for s in ["abc", "ab", "a", "b", "c", "abcd", ""]:
+            assert g.parse(s) == cnf.parse(s)
