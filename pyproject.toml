@@ -8,6 +8,7 @@ version = "0.2.0"
 description = "Property-based testing utilities for finite automata and context-free grammars."
 readme = "README.md"
 requires-python = ">=3.10"
+license = "MIT"
 keywords = ["automata", "formal-languages", "context-free-grammar", "property-based-testing", "hypothesis"]
 classifiers = [
   "Development Status :: 3 - Alpha",
