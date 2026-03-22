@@ -1,6 +1,6 @@
 """Public package interface for pbt4automata."""
 
-from .automaton import Automaton, DFA
+from .automaton import Automaton, DFA, NFA
 from .exceptions import (
     AlphabetMismatchError,
     AutomatonError,
@@ -34,5 +34,6 @@ __all__ = [
     "InvalidStartSymbolError",
     "InvalidSymbolError",
     "InvalidTransitionFunctionError",
+    "NFA",
     "PBT4AutomataError",
 ]
