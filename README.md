@@ -1,15 +1,17 @@
-# pbt4automata
+# Property Based Testing for Finite Automata and Context-free Grammars
 
 <p align=center>
     <img src="https://github.com/user-attachments/assets/c57f4822-eb3f-4e9e-9af3-7d22b927fbfe" />
 </p>
 
-`pbt4automata` provides tools to construct finite automata and context-free grammars in Python and validate their behavior with property-based tests powered by [Hypothesis](https://hypothesis.readthedocs.io/en/latest/index.html).
+This repository provides tools to construct finite automata and context-free grammars in Python and test them against a given rule for correctness. This testing is done using [Hypothesis](https://hypothesis.readthedocs.io/en/latest/index.html), a python library for property-based testing, which also provides a counter-example (often the smallest possible) in case of a mismatch. Note that this is not formal verification and cannot guarantee correctness. Nonetheless, this is a convenient (and usually sufficiently thorough) way to evaluate finite automata and context-free grammars.
 
-## Installation
+### Dependencies
+
+1. Hypothesis
 
 ```bash
-pip install -e .
+pip install hypothesis
 ```
 
 ## Examples
@@ -21,12 +23,13 @@ pip install -e .
 The following example tests a DFA that accepts all strings that contain the substring "010" or "100".
 
 ```python
-from pbt4automata import DFA
+from automaton import DFA
+from tester import test
 
-automaton = DFA(
-    states=["q0", "q1", "q2", "q3", "q4", "q5"],
-    alphabet="01",
-    transition_function={
+automata = DFA(
+    states = ["q0", "q1", "q2", "q3", "q4", "q5"],
+    alphabet = "01",
+    transition_function = {
         ("q0", "0"): "q1",
         ("q0", "1"): "q4",
         ("q1", "0"): "q1",
@@ -38,26 +41,27 @@ automaton = DFA(
         ("q4", "0"): "q5",
         ("q4", "1"): "q4",
         ("q5", "0"): "q3",
-        ("q5", "1"): "q2",
+        ("q5", "1"): "q2"
     },
-    start_state="q0",
-    accept_states=["q3"],
+    start_state = "q0",
+    accept_states = ["q3"]
 )
 
-result = automaton.test("[01]*(010|100)[01]*")
+check = test(automata, "[01]*(010|100)[01]*")
 
-if result is True:
+if check == True:
     print("Success!")
 else:
-    print("Counterexample:", result)
+    print("Counterexample: " + check)
 ```
 
-You can also pass a function of type `Callable[[str], bool]` to `automaton.test(...)` instead of a regex.
+You can also pass a function of type `Callable[[str], bool]` to the `test` function instead of a regex.
 
 #### Testing two DFAs for equivalence
 
 ```python
-from pbt4automata import Automaton, DFA
+from automaton import DFA
+from tester import test_equivalence
 
 automata1 = DFA(
     ...
@@ -67,12 +71,12 @@ automata2 = DFA(
     ...
 )
 
-result = Automaton.test_equivalence(automata1, automata2)
+check = test_equivalence(automata1, automata2)
 
-if result is True:
+if check == True:
     print("Success!")
 else:
-    print("Counterexample:", repr(result))
+    print("Counterexample: " + repr(check))
 ```
 
 ### Context-Free Grammars
@@ -82,7 +86,7 @@ else:
 The following example tests a CFG in Chomsky Normal Form that generates all non-empty strings of balanced parentheses.
 
 ```python
-from pbt4automata import CNF
+from grammar import CNF
 
 cnf = CNF(
     terminals="()",
@@ -109,19 +113,10 @@ def check_balance(input_string: str) -> bool:
             return False
     return s == 0
 
-result = cnf.test(check_balance)
+check = cnf.test(check_balance)
 
-if result is True:
+if check == True:
     print("Success!")
 else:
-    print("Counterexample:", result)
-```
-
-## Development
-
-Install dev dependencies and run tests:
-
-```bash
-pip install -e ".[dev]"
-pytest -v
+    print("Counterexample: " + check)
 ```
